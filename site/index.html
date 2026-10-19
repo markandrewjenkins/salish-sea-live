@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    // Apply saved theme and design skin before first paint (?skin=alt|classic overrides and is remembered)
+    (function () { try { var r = document.documentElement, q = new URLSearchParams(location.search).get("skin");
+      var t = localStorage.getItem("odp-theme"); if (t) r.dataset.theme = t;
+      if (q) localStorage.setItem("odp-skin", q);
+      if ((q || localStorage.getItem("odp-skin")) === "alt") r.dataset.skin = "alt"; } catch (e) {} })();
+  </script>
+  <title>Salish Sea Live</title>
+  <meta name="description" content="Listen to live underwater microphones in the Salish Sea, see where whales are being reported and how the shipping lanes overlap, and explore a model that helps volunteers find orca calls faster." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐋</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,500;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/shared/theme.css" />
+  <link rel="stylesheet" href="./src/salish/salish.css" />
+  <link rel="stylesheet" href="./src/salish/skin.css" />
+</head>
+<body class="salish">
+  <header class="topbar">
+    <span class="title">Salish Sea Live</span>
+    <span class="spacer"></span>
+    <button class="skin-btn" id="skin" type="button" data-skin-name="Sonar Room"></button>
+    <button class="icon-btn" id="theme" type="button"></button>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-text">
+        <div class="eyebrow">Live from under the water</div>
+        <h1 class="hero-title">Listen to the Salish Sea</h1>
+        <p class="lede">Seven hydrophones in Haro Strait and Puget Sound stream the sound of the sea around the clock: ship engines, sea lions, and sometimes the calls of the Southern Resident and Bigg's killer whales. Pick one and listen.</p>
+        </div>
+        <div class="phones" id="phones"></div>
+        <div class="spectro-wrap card" id="spectro-wrap" hidden>
+          <div class="spectro-head"><b id="now-playing">—</b><span class="note" id="now-sub"></span></div>
+          <canvas id="spectro" height="160"></canvas>
+          <div class="spectro-axis"><span>0 Hz</span><span>Live spectrogram: orca calls show up as bright bands from 1 to 10 kHz, ships as a low rumble</span><span>11 kHz</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head"><div>
+          <div class="eyebrow">This week</div>
+          <h2>Whales and ships</h2>
+          <p>Whale reports from the last few days (Acartia data cooperative) on top of a typical summer weekday of ship traffic (US Coast Guard AIS). Click a hydrophone to listen.</p>
+        </div></div>
+        <div class="map-shell card">
+          <div class="map-body">
+            <div id="map" class="map"></div>
+            <aside class="panel">
+              <div class="side-title">Layers</div>
+              <div class="layer-list" id="layers"></div>
+              <div id="tiles-side"></div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head"><div>
+          <div class="eyebrow">Recently confirmed</div>
+          <h2>Orca calls caught on the hydrophones</h2>
+          <p>Clips the OrcaHello AI flagged and a volunteer confirmed as killer whales. Press play to hear them.</p>
+        </div></div>
+        <div class="calls" id="calls"></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head"><div>
+          <div class="eyebrow">When to listen</div>
+          <h2>Will you hear whales this week?</h2>
+          <p id="outlook-sub"></p>
+        </div></div>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3 class="card-title">Chance listeners report whale sounds, next 7 days</h3>
+            <p class="note card-sub">Logistic model on season and the last month's activity at each hydrophone.</p>
+            <div class="chart" id="outlook"></div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Whale reports by month</h3>
+            <p class="note card-sub">Orcasound listener reports of whale sounds, all hydrophones. Summer is the Southern Residents' season in Haro Strait. Autumn brings them into Puget Sound.</p>
+            <div class="chart" id="months"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 class="card-title" id="weekly-title">Every week</h3>
+          <p class="note card-sub">Listener reports of whale sounds per week across the network.</p>
+          <div class="chart" id="weekly"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head"><div>
+          <div class="eyebrow">Model card</div>
+          <h2>Helping volunteers find the calls</h2>
+          <p>The OrcaHello AI flags far more clips than contain orcas, and volunteers review each one. A second-stage model learns which flags people confirm, from the AI's own scores plus context such as whether other hydrophones lit up in the previous hours. It's trained on 2020–2024 and tested on 2025–2026 flags it never saw.</p>
+        </div></div>
+        <div class="grid cols-4" id="tri-metrics"></div>
+        <div class="grid cols-2" style="margin-top:16px">
+          <div class="card">
+            <h3 class="card-title">Precision vs recall (2025–2026 test set)</h3>
+            <p class="note card-sub">Higher and further right is better. Ranking by the AI's confidence alone is the baseline.</p>
+            <div class="legend" id="pr-legend"></div>
+            <div class="chart" id="pr"></div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">What the model listens for</h3>
+            <p class="note card-sub">Drop in test AUC when each input is shuffled.</p>
+            <div class="chart" id="tri-imp"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="grid cols-2">
+          <div class="card">
+            <h3 class="card-title">Whale season, from iNaturalist</h3>
+            <p class="note card-sub" id="inat-sub">Research-grade observations by month in the Salish Sea.</p>
+            <div class="grid cols-2" id="inat-season"></div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">A summer weekday on the water</h3>
+            <p class="note card-sub">Vessels moving through the US side of the Salish Sea on July 17, 2024, by type.</p>
+            <div class="chart" id="ships"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="grid cols-2">
+          <div class="card prose">
+            <h3>Method</h3>
+            <p><b>Triage model.</b> Every OrcaHello detection gets the AI's confidence and segment scores, plus context:</p>
+            <ul>
+              <li>How many flags the same hydrophone raised in the past hour.</li>
+              <li>How many the whole network raised in the past two hours.</li>
+              <li>How many other hydrophones raised in the past three hours, since whales move between sites.</li>
+              <li>Hours since this hydrophone's last flag.</li>
+              <li>Time of day and season.</li>
+            </ul>
+            <p>A gradient-boosted classifier learns the human verdict on 2020–2024 flags and is scored on 2025–2026.</p>
+            <p><b>Outlook.</b> Weekly logistic regression on season, last week's whale reports and the share of the last four weeks with reports, at each hydrophone. Reports come from the Orcasound live-listening app. It's validated on 2025–2026 by Brier score against a hydrophone-and-month climatology.</p>
+            <p><b>Ships.</b> One summer weekday of US Coast Guard AIS from the NOAA/BOEM Marine Cadastre, filtered to the Salish Sea. Moving vessels are thinned to two-minute fixes and grouped by AIS ship type.</p>
+          </div>
+          <div class="card prose">
+            <h3>Honest limitations</h3>
+            <ul>
+              <li>Reports depend on hydrophones being online and people listening. Quiet weeks can mean no whales, a microphone that was down, or nobody tuned in. Only weeks when a hydrophone had some listener activity are modelled.</li>
+              <li>Volunteers sometimes disagree, and the mix of hydrophones and AI model versions changed over time. The 2025–2026 test reflects today's system, which is the honest test.</li>
+              <li>The ship layer is a single US-collected day and is thinner on the Canadian side. Live ship positions need an aisstream.io key: the pipeline will add them automatically once one is supplied.</li>
+              <li>Whale reports are opportunistic. More reports near Seattle and the San Juans partly reflect where people are watching.</li>
+            </ul>
+            <h3 style="margin-top:16px">Data sources</h3>
+            <ul class="sources">
+              <li><a href="https://www.orcasound.net/">Orcasound</a> hydrophone streams (CC BY-NC-SA 4.0) and live-listener reports</li>
+              <li><a href="https://ai4orcas.net/">OrcaHello</a> AI detections and volunteer reviews (AI for Orcas / Orcasound)</li>
+              <li><a href="https://acartia.io/">Acartia</a> marine mammal sightings data cooperative</li>
+              <li><a href="https://www.inaturalist.org/">iNaturalist</a> research-grade whale observations</li>
+              <li><a href="https://hub.marinecadastre.gov/">NOAA / BOEM Marine Cadastre</a> AIS vessel traffic (public domain)</li>
+              <li>Basemap © <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></li>
+            </ul>
+            <p class="note" id="generated"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site"><div class="wrap">Salish Sea Live is part of an open-data portfolio. Hydrophone audio streams live from Orcasound.</div></footer>
+  <script type="module" src="./src/salish/main.js"></script>
+</body>
+</html>

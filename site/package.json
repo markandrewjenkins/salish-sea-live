@@ -1,0 +1,23 @@
+{
+  "name": "salish-sea-live",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.0",
+    "vite": "^6.4.4"
+  },
+  "dependencies": {
+    "@observablehq/plot": "^0.6.17",
+    "astronomy-engine": "^2.1.19",
+    "d3": "^7.9.0",
+    "hls.js": "^1.7.3",
+    "maplibre-gl": "^5.24.0",
+    "satellite.js": "^5.0.0"
+  }
+}

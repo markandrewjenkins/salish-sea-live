@@ -1,0 +1,66 @@
+# Refresh Salish Sea Live's data, rebuild the site and publish it to GitHub Pages.
+# Daily (and on demand) the pipelines refresh the data first; a push just rebuilds and publishes what's committed.
+name: refresh-and-deploy
+
+on:
+  schedule:
+    - cron: "30 13 * * *"     # daily, 06:30 Pacific
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency: { group: pages, cancel-in-progress: true }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Restore cached raw downloads
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+      - name: "Salish Sea Live: listener reports and whale sightings"
+        if: github.event_name != 'push'      # pushes publish the committed data straight away
+        continue-on-error: true               # a flaky source keeps its last good data instead of blocking the site
+        timeout-minutes: 90
+        env:
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+        run: |
+          python -m pipelines.salish.fetch orcasound
+          python -m pipelines.salish.fetch acartia
+          python -m pipelines.salish.fetch live
+          python -m pipelines.salish.build
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: site/package-lock.json }
+      - run: npm ci
+        working-directory: site
+      - run: npm run build
+        working-directory: site
+      - name: Commit refreshed data
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "data-bot"
+          git config user.email "data-bot@users.noreply.github.com"
+          git add site/public/data
+          git diff --cached --quiet || git commit -m "Refresh open data $(date -u +%F)"
+          git pull --rebase --autostash && git push
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site/dist }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: "${{ steps.deployment.outputs.page_url }}" }
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

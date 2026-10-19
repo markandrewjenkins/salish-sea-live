@@ -1,0 +1,6 @@
+.venv/
+node_modules/
+site/dist/
+data/*/raw/
+*.log
+__pycache__/
