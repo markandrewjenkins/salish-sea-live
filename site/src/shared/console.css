@@ -1,0 +1,218 @@
+/* Console layout for one-screen "inverted pyramid" dashboards (built by ./console.js; guide in docs/console.md).
+   Uses only the theme tokens from theme.css, so light/dark come for free. Link it after theme.css and before the page's
+   own CSS; skins restyle it from their skin CSS with higher-specificity selectors (e.g. :root[data-skin="alt"] .cx-tile).
+   Per-topic colour: --tc (set from each module's `color`). Layout sizes: --cx-rail-w, --cx-drawer-w, --cx-top (top bar
+   height, measured by console.js; used by the sticky mobile tabs). Desktop ≥ 1100px, mobile below. */
+
+.cx-app { --cx-rail-w: 240px; display: grid; grid-template-columns: var(--cx-rail-w) minmax(0, 1fr); }
+.cx-main { position: relative; min-width: 0; }
+
+/* ---------- rail */
+.cx-nav { --tc: var(--ink-2); display: flex; flex-direction: column; gap: 12px; padding: 14px 10px 14px 12px; border-right: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface) 55%, var(--page)); }
+.cx-nav-list { display: flex; flex-direction: column; gap: 2px; }
+.cx-group { position: relative; }
+.cx-topic { display: flex; align-items: center; gap: 9px; padding: 7px 34px 7px 10px; border-radius: 9px; text-decoration: none;
+  color: var(--ink-2); font-size: 14px; font-weight: 550; line-height: 1.25; }
+.cx-topic:hover { background: var(--surface-2); color: var(--ink); }
+.cx-group.active > .cx-topic { color: var(--ink); background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+.cx-group.cx-leaf .cx-topic { padding-right: 10px; }
+.cx-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--tc); }
+.cx-group[data-topic="overview"] .cx-dot { border-radius: 2px; } /* background: conic gradient of the topic colours, set by console.js */
+.cx-group.cx-page .cx-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); }
+.cx-group.cx-sep { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.cx-label { flex: 1; min-width: 0; }
+.cx-badge { font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cx-group.active .cx-badge { color: var(--tc); }
+.cx-caret { position: absolute; right: 4px; top: 4px; width: 26px; height: 26px; display: grid; place-items: center;
+  border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.cx-caret::before { content: ""; width: 6px; height: 6px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+.cx-group.open .cx-caret::before { transform: rotate(45deg) translate(-1px, -1px); }
+.cx-caret:hover { background: var(--surface-2); color: var(--ink); }
+.cx-subs { display: none; list-style: none; margin: 2px 0 6px 14px; padding: 0 0 0 12px; border-left: 2px solid color-mix(in oklab, var(--tc) 35%, var(--border)); }
+.cx-group.open .cx-subs { display: block; }
+.cx-subs a { display: block; padding: 5px 9px; border-radius: 7px; font-size: 13px; color: var(--ink-2); text-decoration: none; }
+.cx-subs a:hover { background: var(--surface-2); color: var(--ink); }
+.cx-subs a[aria-current="page"] { color: var(--ink); font-weight: 600; background: color-mix(in oklab, var(--tc) 12%, transparent); box-shadow: inset 2px 0 0 var(--tc); }
+.cx-foot { margin-top: auto; padding: 10px 8px 0; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.cx-foot .note { font-size: 11.5px; }
+
+/* ---------- view header: title + topic summary strip */
+.cx-view { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 18px; }
+.cx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 28px; flex-wrap: wrap; }
+.cx-title { min-width: 0; }
+.cx-title .eyebrow { color: var(--tc); }
+.cx-title h1 { font-size: 22px; margin-top: 3px; letter-spacing: -0.02em; }
+.cx-title h1:focus { outline: none; }
+.cx-head-note { font-size: 13px; color: var(--ink-2); max-width: 58ch; }
+.cx-kpis { display: flex; flex-wrap: nowrap; min-width: 0; max-width: 100%; }
+.cx-kpi { padding: 2px 16px; border-left: 1px solid var(--border); min-width: 0; flex: 0 1 auto; }
+.cx-kpi:first-child { border-left: 3px solid var(--tc); }
+.cx-kpi-l { font-size: 11.5px; color: var(--muted); font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-kpi-v { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; max-width: 17ch; overflow: hidden; text-overflow: ellipsis; }
+.cx-kpi-s { font-size: 11.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-subtabs { display: none; }
+.cx-lede { max-width: 92ch; }
+.cx-status { padding: 4px 0; }
+
+/* ---------- panes, rows and cards */
+.cx-pane { display: grid; gap: 12px; min-width: 0; grid-template-rows: var(--cx-rows, none); grid-template-columns: var(--cx-cols, none); }
+.cx-row { display: grid; gap: 12px; min-height: 0; min-width: 0; }
+.cx-row.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cx-row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cx-row.cols-13-1 { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.cx-app .card { padding: 14px 16px; border-radius: 12px; }
+.cx-fill { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.cx-card-title { font-size: 15px; margin-bottom: 3px; }
+.cx-card-sub { margin-bottom: 6px; }
+
+/* ---------- charts (./charts.js): an svg that fills its .chart box */
+.cx-app .chart { position: relative; }
+.cx-app .chart > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chart .axis-t { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.chart .brow.pick { cursor: pointer; }
+.chart .brow.pick:hover .label { fill: var(--ink); }
+.chart .brow.pick:focus-visible { outline: none; }
+.chart .brow.pick:focus-visible .hit { stroke: var(--tc, var(--accent)); stroke-width: 2; }
+.chart .brow.on .label { fill: var(--ink); font-weight: 650; }
+.chart .brow.off path { opacity: 0.38; }
+.chart .brow.off .label { fill: var(--muted); }
+.chart .hcell.on { stroke: var(--ink); stroke-width: 2.5; }
+.chart .c.on text { fill: var(--ink); }
+.chart .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.cx-app .legend a.key { text-decoration: none; }
+.cx-app .legend a.key:hover { color: var(--ink); text-decoration: underline; }
+
+/* ---------- overview tiles: equal weight, one per topic */
+.cx-tiles { display: grid; grid-template-columns: repeat(var(--cx-tile-cols, 2), minmax(0, 1fr)); gap: 14px; }
+.cx-tile { position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 16px 12px;
+  border-top: 3px solid var(--tc); transition: box-shadow .15s, transform .15s; }
+.cx-tile:hover { box-shadow: 0 0 0 1px color-mix(in oklab, var(--tc) 50%, transparent), var(--shadow); }
+.cx-tile-head { display: flex; align-items: center; gap: 9px; }
+.cx-tile-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tc); flex: none; }
+.cx-tile-name { font-size: 15px; font-weight: 650; text-decoration: none; color: var(--ink); }
+.cx-tile-name:hover { text-decoration: underline; }
+.cx-tile-live { font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.cx-tile-live:not(:empty)::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #1baf7a; }
+.cx-tile-go { margin-left: auto; color: var(--muted); font-size: 16px; transition: transform .15s, color .15s; }
+.cx-tile:hover .cx-tile-go { color: var(--tc); transform: translateX(3px); }
+.cx-tile-kpis { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 12px; }
+.cx-tile-kpis:empty { display: none; }
+.cx-tk { min-width: 0; }
+.cx-tk b { display: block; font-size: 19px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.cx-tk:first-child b { font-size: 28px; color: var(--ink); }
+.cx-tk span { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.3; }
+.cx-tk-sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0.06em; }
+.cx-tile-vis { flex: 1 1 auto; min-height: 0; }
+.cx-tile-vis .c.pick { cursor: pointer; }
+.cx-tile-vis .c.pick:hover path, .cx-tile-vis .c.pick:focus-visible path { filter: brightness(1.08); }
+.cx-tile-vis .c.pick:focus-visible { outline: none; }
+.cx-tile-vis .c.pick:focus-visible rect { stroke: var(--tc); stroke-width: 2; }
+.cx-tile-links { display: flex; flex-wrap: wrap; gap: 4px 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.cx-tile-links a { font-size: 12px; color: var(--ink-2); text-decoration: none; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); }
+.cx-tile-links a:hover { color: var(--ink); background: color-mix(in oklab, var(--tc) 14%, var(--surface-2)); }
+
+/* ---------- detail drawer (level 3) and its building blocks */
+.cx-drawer { z-index: 30; display: flex; flex-direction: column; background: var(--surface); color: var(--ink);
+  border-left: 1px solid var(--border); box-shadow: -18px 0 40px -24px rgba(0, 0, 0, 0.45); border-top: 3px solid var(--tc, var(--accent));
+  animation: cx-drawer-in .18s ease-out; }
+@keyframes cx-drawer-in { from { transform: translateX(24px); opacity: 0; } }
+.cx-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+.cx-drawer-head .eyebrow { color: var(--tc, var(--muted)); }
+.cx-drawer-head h2 { font-size: 19px; margin-top: 4px; line-height: 1.2; }
+.cx-drawer-head h2:focus { outline: none; }
+.cx-drawer-x { flex: none; font-size: 14px; }
+.cx-drawer-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.cx-dstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cx-dstats > div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.cx-dstats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cx-dstats.four > div { padding: 6px 8px; }
+.cx-dstats.four b { font-size: 17px; }
+.cx-dstats b { display: block; font-size: 19px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.cx-dstats span { font-size: 11.5px; color: var(--ink-2); }
+.cx-dsec h3, .cx-dsub-h { font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.cx-dsub-h { margin: 4px 0 -4px; color: var(--ink); }
+.cx-dchart { height: 190px; }
+.cx-app .cx-dchart.bars { height: calc(var(--rows, 7) * 30px + 8px); }
+.cx-dnote { font-size: 13px; color: var(--ink-2); }
+.cx-dlink { font-size: 13px; font-weight: 600; color: var(--tc, var(--accent)); text-decoration: none; }
+.cx-dlink:hover { text-decoration: underline; }
+.cx-fillbar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin-top: 8px; }
+.cx-fillbar i { display: block; height: 100%; border-radius: 4px; }
+
+/* ==================================================================================================
+   DESKTOP ≥ 1100px: one screen, no page scroll. Body is a column: top bar (and any strip under it), then the console.
+   ================================================================================================== */
+@media (min-width: 1100px) {
+  body.cx-body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  body.cx-body > * { flex: none; }
+  body.cx-body > .topbar { position: relative; }
+  body.cx-body > .cx-app { flex: 1 1 auto; min-height: 0; }
+  .cx-nav { min-height: 0; overflow-y: auto; }
+  .cx-main { min-height: 0; overflow: hidden; }
+  .cx-view { height: 100%; min-height: 0; overflow: auto; }
+  .cx-pane { flex: 1 1 0; min-height: 0; }
+  .cx-pane > *, .cx-row > * { min-height: 0; }
+  .cx-fill > .chart, .cx-fill > .cx-grow { flex: 1 1 0; min-height: 0; }
+  .cx-tiles { flex: 1 1 0; min-height: 0; grid-template-rows: repeat(var(--cx-tile-rows, 2), minmax(0, 1fr)); }
+
+  /* the drawer docks as a side column and the view reflows beside it, so the selected bar or cell stays in sight */
+  .cx-main { --cx-drawer-w: min(380px, 38%); }
+  .cx-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: var(--cx-drawer-w); }
+  .cx-main.cx-has-drawer > .cx-view { margin-right: var(--cx-drawer-w); }
+}
+/* short desktop windows: tighten the chrome so the panel keeps its height */
+@media (min-width: 1100px) and (max-height: 860px) {
+  .cx-view { padding: 12px 18px 14px; gap: 10px; }
+  .cx-title h1 { font-size: 20px; }
+  .cx-kpi-v { font-size: 18px; }
+  .cx-pane, .cx-row, .cx-tiles { gap: 10px; }
+  .cx-app .card { padding: 12px 14px; }
+  .cx-tile { padding: 12px 14px 10px; gap: 8px; }
+  .cx-tk:first-child b { font-size: 25px; }
+}
+
+/* ==================================================================================================
+   MOBILE / TABLET < 1100px: the page scrolls, the rail becomes sticky topic tabs, sub-topics become tabs in each view,
+   the drawer becomes a bottom sheet.
+   ================================================================================================== */
+@media (max-width: 1099.98px) {
+  .cx-app { display: block; }
+  .cx-nav { position: sticky; top: var(--cx-top, 54px); z-index: 40; padding: 8px 0; gap: 0; border-right: 0; border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--page) 90%, transparent); backdrop-filter: saturate(1.4) blur(10px); }
+  .cx-nav-list { flex-direction: row; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 0 clamp(12px, 3vw, 24px); }
+  .cx-nav-list::-webkit-scrollbar { display: none; }
+  .cx-group { flex: none; }
+  .cx-group.cx-sep { margin: 0; padding: 0; border: 0; }
+  .cx-topic { padding: 6px 12px; border-radius: 999px; font-size: 13.5px; white-space: nowrap; }
+  .cx-caret, .cx-subs, .cx-group.open .cx-subs, .cx-badge, .cx-foot { display: none; }
+  .cx-view { padding: 16px clamp(12px, 3vw, 24px) 32px; }
+  .cx-head { align-items: flex-start; }
+  .cx-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; width: 100%; }
+  .cx-kpi { padding: 2px 12px; }
+  .cx-kpi:nth-child(odd) { border-left: 3px solid var(--tc); }
+  .cx-kpi-v, .cx-kpi-s { white-space: normal; }
+  .cx-subtabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: 0 -2px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+  .cx-subtabs::-webkit-scrollbar { display: none; }
+  .cx-subtabs a { flex: none; padding: 6px 12px; border-radius: 9px; font-size: 13px; font-weight: 550; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+  .cx-subtabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 0 0 1px var(--border); }
+  .cx-pane { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .cx-row.cols-2, .cx-row.cols-3, .cx-row.cols-13-1 { grid-template-columns: minmax(0, 1fr); }
+  .cx-app .chart { height: 240px; }
+  .cx-app .chart.bars { height: calc(var(--rows, 8) * 30px + 8px); }
+  .cx-app .cx-tile-vis { height: 170px; }
+  .cx-app .cx-dchart { height: 190px; }
+  .cx-app .cx-dchart.bars { height: calc(var(--rows, 7) * 30px + 8px); }
+  .cx-tiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+  .cx-tile-kpis { grid-template-columns: 1fr 1fr 1fr; }
+  .cx-drawer { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78vh; z-index: 70; border-left: 0; border-radius: 16px 16px 0 0;
+    box-shadow: 0 -18px 40px -16px rgba(0, 0, 0, 0.45); animation-name: cx-sheet-in; }
+  @keyframes cx-sheet-in { from { transform: translateY(30px); opacity: 0; } }
+}
+@media (max-width: 560px) {
+  .cx-tile-kpis { grid-template-columns: 1fr 1fr; }
+  .cx-tile-kpis .cx-tk:first-child { grid-column: 1 / -1; }
+  .cx-title h1 { font-size: 20px; }
+}

@@ -10,7 +10,7 @@ const SVGNS = "http://www.w3.org/2000/svg";
 const DATA_LAYERS = new Set(["ships", "inat", "whales", "phones"]);
 const SWEEP_S = 8;                                   // seconds per sweep revolution (matches skin.css)
 
-let D = null, ships = null, listening = null, built = [], timer = 0;
+let D = null, ships = null, listening = null, built = [], timer = 0, shipInfo = null;
 
 // ------------------------------------------------------------------ spectrogram colormaps
 // Night: phosphor (black -> deep teal -> bright mint). Day: printed-chart ink (paper -> shallows blue -> navy -> black).
@@ -79,6 +79,7 @@ export function skinBasemap(map, dark) {
 // ------------------------------------------------------------------ data from main.js
 window.addEventListener("salish:data", (e) => { ({ D, ships } = e.detail); if (on()) build(); });
 window.addEventListener("salish:listen", (e) => { listening = e.detail; paintListen(); });
+window.addEventListener("salish:ships", (e) => { shipInfo = e.detail; paintStrip(); });
 window.addEventListener("skinchange", () => (on() ? build() : teardown()));
 if (on()) build();
 
@@ -105,7 +106,7 @@ function build() {
     built.push(scope);
   }
   const hud = h("div", { class: "sr-maphud", "aria-hidden": "true" },
-    h("span", { class: "sr-n" }, "TACTICAL PLOT // SALISH SECTOR"), h("span", { class: "sr-d" }, "Haro Strait to Puget Sound · Soundings in whale reports"));
+    h("span", { class: "sr-n" }, "TACTICAL PLOT // SALISH SECTOR"), h("span", { class: "sr-d" }, "Vancouver Island to Puget Sound · Soundings in whale reports"));
   document.querySelector(".map-shell").append(hud);
   built.push(hud);
   const foot = h("div", { class: "sr-flavour", "aria-hidden": "true" },
@@ -132,8 +133,8 @@ function buildStrip() {
   return h("div", { class: "sr-strip", role: "group", "aria-label": "Live readouts" },
     h("div", { class: "sr-strip-in" },
       h("span", { class: "sr-live" }, h("i", { class: "sr-dot", "aria-hidden": "true" }), "LIVE"),
-      cell("phones", "Hydrophones"), cell("whale", "Last whale report"), cell("ships", "Ship transits · sample day"),
-      cell("listen", "Listener"), h("span", { class: "sr-spacer" }), cell("asof", "Data as of")));
+      cell("phones", "Hydrophones"), cell("whale", "Last whale report"), cell("ships", "Ship tracks · AIS"),
+      cell("listen", "Listener"), h("span", { class: "sr-spacer" }), cell("asof", "Pipeline ran")));
 }
 function setCell(key, text, cls) {
   const v = document.querySelector(`.sr-cell[data-k="${key}"] .sr-val`);
@@ -146,11 +147,12 @@ function paintStrip() {
   const hp = Object.values(D.hydrophones);
   setCell("phones", `${hp.filter((p) => p.reports_30d > 0).length}/${hp.length} ACTIVE · 30D`);
   const last = (D.sightings || []).map((s) => ({ ...s, t: utc(s.created) })).filter((s) => !isNaN(s.t)).sort((a, b) => b.t - a.t)[0];
-  setCell("whale", last ? `${last.type.toUpperCase()} · ${ago(Date.now() - last.t)}` : "NONE THIS WEEK", last?.type === "Orca" ? "hot" : "");
-  const n = D.ship_stats ? d3.sum(Object.values(D.ship_stats)) : ships?.features?.length;
-  setCell("ships", n ? `${d3.format(",")(n)} VESSELS` : "NO AIS");
+  setCell("whale", last ? `${last.type.toUpperCase()} · ${ago(Date.now() - last.t)}` : "NONE THIS WEEK", /orca/i.test(last?.type || "") ? "hot" : "");
+  const n = shipInfo ? shipInfo.vessels : ships?.features?.length;
+  setCell("ships", shipInfo?.live && !n ? "LIVE · NO KEY" : n ? `${d3.format(",")(n)} VESSELS` : "NO AIS", shipInfo?.live && !n ? "warn" : "");
   const g = new Date(D.generated);
-  setCell("asof", `${g.toLocaleDateString("en-CA", { month: "short", day: "numeric" }).toUpperCase()} ${g.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false })}`);
+  const tz = "America/Los_Angeles";             // same clock as the rest of the page
+  setCell("asof", `${g.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: tz }).toUpperCase()} ${g.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz })} PT`);
   paintListen();
 }
 function paintListen() {
@@ -224,7 +226,8 @@ function buildScope() {
   for (const c of contacts.filter((c) => c.km <= range)) {
     const [x, y] = pol(c.brg, rr(c.km));
     const delay = -(SWEEP_S * (1 - c.brg / 360)).toFixed(2);
-    blips.append(h("svg:circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: c.type === "Orca" ? 2.6 : 2, class: `bl ${c.type === "Orca" ? "orca" : ""}`, style: `animation-delay:${delay}s` }));
+    const orca = /orca/i.test(c.type || "");
+    blips.append(h("svg:circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: orca ? 2.6 : 2, class: `bl ${orca ? "orca" : ""}`, style: `animation-delay:${delay}s` }));
   }
   svg.append(rings, rose, sweep, blips);
   const n = contacts.filter((c) => c.km <= range).length;

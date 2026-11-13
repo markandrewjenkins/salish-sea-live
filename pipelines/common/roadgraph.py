@@ -113,7 +113,8 @@ def build(elements: list[dict], bbox, *, min_component: int = 60) -> dict:
         info = dict(cls=CLS.get(cls, CLS["path"]), speed=_speed(t, cls) if hw not in NONMOTOR else 15,
                     lanes=_lanes(t, cls) if hw not in NONMOTOR else 1, name=t.get("name", "") or t.get("ref", ""),
                     unpaved=t.get("surface", "") in ("gravel", "dirt", "ground", "unpaved", "compacted", "fine_gravel", "grass", "sand", "mud", "woodchips"),
-                    bridge=t.get("bridge", "no") not in ("no", ""), signals=0,
+                    bridge=t.get("bridge", "no") not in ("no", ""),
+                    tunnel=t.get("tunnel", "no") not in ("no", "") or t.get("covered") == "yes", signals=0,
                     bikeinfra=hw == "cycleway" or any(str(t.get(k, "")).startswith(("lane", "track", "separate", "shared_lane"))
                                                        for k in ("cycleway", "cycleway:both", "cycleway:left", "cycleway:right")) or t.get("bicycle") == "designated",
                     scenic=t.get("scenic") == "yes", acc=acc)
@@ -136,7 +137,7 @@ def build(elements: list[dict], bbox, *, min_component: int = 60) -> dict:
     col = lambda k: np.array([inf[k] for _, inf in edges])
     G = {"bbox": bbox, "proj": (lon0, lat0, kx, ky), "nlon": nlon, "nlat": nlat, "a": a, "b": b, "geom": geom,
          "length": length, "cls": col("cls"), "speed": col("speed"), "lanes": col("lanes"), "unpaved": col("unpaved"),
-         "bridge": col("bridge"), "bikeinfra": col("bikeinfra"), "scenic": col("scenic"),
+         "bridge": col("bridge"), "tunnel": col("tunnel"), "bikeinfra": col("bikeinfra"), "scenic": col("scenic"),
          "name": [inf["name"] for _, inf in edges], "osm_nodes": [s for s, _ in edges], "node_ids": node_ids}
     for m in MODES:
         fwd = np.array([inf["acc"][m][0] for _, inf in edges]); bwd = np.array([inf["acc"][m][1] for _, inf in edges])

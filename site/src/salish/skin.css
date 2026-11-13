@@ -349,10 +349,10 @@
 [data-skin="alt"] .salish .stat-mini:nth-of-type(2) { border-left-color: var(--accent-2); }
 
 /* pending triage / missing clips: an alert note */
-[data-skin="alt"] .salish #tri-metrics > .note, [data-skin="alt"] .salish #calls > .note {
+[data-skin="alt"] .salish #tri-metrics > .note, [data-skin="alt"] .salish :is(#calls, #tiers) > .note {
   grid-column: 1 / -1; border-left: 3px solid var(--alert); color: var(--ink-2); font-size: 13.5px; padding: 12px 14px 12px 16px;
 }
-[data-skin="alt"] .salish #tri-metrics > .note::before, [data-skin="alt"] .salish #calls > .note::before {
+[data-skin="alt"] .salish #tri-metrics > .note::before, [data-skin="alt"] .salish :is(#calls, #tiers) > .note::before {
   content: var(--alert-tag); display: block; margin-bottom: 4px; color: var(--alert);
   font: 600 11.5px/1.2 var(--lab); letter-spacing: 0.16em; text-transform: uppercase;
   animation: sr-blink 2.4s steps(1, end) infinite; animation-play-state: var(--sweep-state);
@@ -449,3 +449,36 @@
 /* precision-recall baseline: a neutral grey so it reads apart from the phosphor model line at night */
 @media (prefers-color-scheme: dark) { :root[data-skin="alt"]:not([data-theme="light"]) body.salish { --pr-base: #8a9aa0; } }
 :root[data-skin="alt"][data-theme="dark"] body.salish { --pr-base: #8a9aa0; }
+
+/* ================================================================== freshness, map controls, whale-sound tier list */
+/* Tier colours: day = chart inks (magenta S, navy A, shallows B, buff C, paper D); night = phosphor intensity. */
+:root[data-skin="alt"] body.salish {
+  --tier-S: #b0187b; --tier-S-ink: #fffdf6; --tier-A: #1d5a7e; --tier-A-ink: #fffdf6; --tier-B: #d6eaf2; --tier-B-ink: #15130e;
+  --tier-C: #e9dcb6; --tier-C-ink: #15130e; --tier-D: #fffdf6; --tier-D-ink: #665e4c; --ok: #13875e; --warn: #a86f00; --bad: #b0187b;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="alt"]:not([data-theme="light"]) body.salish {
+    --tier-S: #5ef2c8; --tier-S-ink: #04121a; --tier-A: rgba(94, 242, 200, 0.34); --tier-A-ink: #d9fff1; --tier-B: rgba(94, 242, 200, 0.17); --tier-B-ink: #b9f8e4;
+    --tier-C: rgba(94, 242, 200, 0.08); --tier-C-ink: #84dcc0; --tier-D: transparent; --tier-D-ink: #5fae96; --ok: #5ef2c8; --warn: #ffb347; --bad: #ff6b55;
+  }
+}
+:root[data-skin="alt"][data-theme="dark"] body.salish {
+  --tier-S: #5ef2c8; --tier-S-ink: #04121a; --tier-A: rgba(94, 242, 200, 0.34); --tier-A-ink: #d9fff1; --tier-B: rgba(94, 242, 200, 0.17); --tier-B-ink: #b9f8e4;
+  --tier-C: rgba(94, 242, 200, 0.08); --tier-C-ink: #84dcc0; --tier-D: transparent; --tier-D-ink: #5fae96; --ok: #5ef2c8; --warn: #ffb347; --bad: #ff6b55;
+}
+[data-skin="alt"] .salish :is(.tier-badge, .tier-pill) { border-radius: 2px; border: 1px solid var(--hair); box-shadow: var(--glow-soft); }
+[data-skin="alt"] .salish .tier-badge b { font: var(--h-style) var(--h-weight) 28px/1 var(--display); text-shadow: none; }
+[data-skin="alt"] .salish .tier-badge span, [data-skin="alt"] .salish .tier-pill { font-family: var(--mono); }
+[data-skin="alt"] .salish .tier-card { border-radius: 2px; border: 1px solid var(--border); background: var(--surface); }
+[data-skin="alt"] .salish .tier-card img { filter: var(--img-filter); border-bottom: 1px solid var(--border); }
+[data-skin="alt"] .salish .tc-nm { font: var(--h-style) var(--h-weight) 13px/1.25 var(--display); text-transform: var(--h-tt); letter-spacing: 0.03em; }
+[data-skin="alt"] .salish .tc-m { font: 11px/1.4 var(--mono); color: var(--muted); }
+[data-skin="alt"] .salish .tc-play { border-radius: var(--btn-radius); background: var(--btn-bg); color: var(--btn-ink); border: var(--btn-border); }
+[data-skin="alt"] .salish .tc-play.on { background: var(--btn-on-bg); color: var(--btn-on-ink); box-shadow: var(--glow); }
+[data-skin="alt"] .salish .fr, [data-skin="alt"] .salish .dchip, [data-skin="alt"] .salish :is(.drange input, .dgroup select) { border-radius: 2px; }
+[data-skin="alt"] .salish .fr b, [data-skin="alt"] .salish .fr-head b { font-family: var(--mono); }
+[data-skin="alt"] .salish .fr-l, [data-skin="alt"] .salish .dlab { font: var(--lab-weight) 10px/1.3 var(--lab); letter-spacing: var(--lab-ls); text-transform: uppercase; color: var(--muted); }
+[data-skin="alt"] .salish .dchip { font-family: var(--mono); }
+[data-skin="alt"] .salish .dchip[aria-pressed="true"] { box-shadow: var(--glow-soft); }
+[data-skin="alt"] .salish .panel > .side-title:not(:first-child), [data-skin="alt"] .salish .coverage .side-title { margin-top: 6px; }
+[data-skin="alt"] .salish .tl-list, [data-skin="alt"] .salish .tl-bulk button { border-radius: 2px; }

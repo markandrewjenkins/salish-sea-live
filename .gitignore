@@ -2,5 +2,7 @@
 node_modules/
 site/dist/
 data/*/raw/
+data/osm/
+data/dem/
 *.log
 __pycache__/

@@ -1,17 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="salish">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script>
-    // Apply saved theme and design skin before first paint (?skin=alt|classic overrides and is remembered)
+    // Apply saved theme and design skin before first paint. <html data-skins="alt herbarium …"> lists this page's
+    // themed designs; ?skin=<id>|classic overrides and is remembered. "alt" is shared across pages; other ids per page.
     (function () { try { var r = document.documentElement, q = new URLSearchParams(location.search).get("skin");
       var t = localStorage.getItem("odp-theme"); if (t) r.dataset.theme = t;
-      if (q) localStorage.setItem("odp-skin", q);
-      if ((q || localStorage.getItem("odp-skin")) === "alt") r.dataset.skin = "alt"; } catch (e) {} })();
+      var multi = !!r.dataset.skins, ok = (r.dataset.skins || "alt").split(" "), pk = "odp-skin:" + (r.dataset.page || location.pathname);
+      if (q) { if (multi) localStorage.setItem(pk, q); if (q === "alt" || q === "classic") localStorage.setItem("odp-skin", q); }
+      var s = q || (multi && localStorage.getItem(pk)) || localStorage.getItem("odp-skin");
+      if (ok.indexOf(s) >= 0) r.dataset.skin = s; } catch (e) {} })();
   </script>
   <title>Salish Sea Live</title>
-  <meta name="description" content="Listen to live underwater microphones in the Salish Sea, see where whales are being reported and how the shipping lanes overlap, and explore a model that helps volunteers find orca calls faster." />
+  <meta name="description" content="Listen to live underwater microphones in the Salish Sea, see where whales are being reported around Vancouver Island and the Strait of Georgia and how the shipping lanes overlap, rate recent whale sounds, and explore a model that helps volunteers find orca calls faster." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐋</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,7 +37,7 @@
         <div class="hero-text">
         <div class="eyebrow">Live from under the water</div>
         <h1 class="hero-title">Listen to the Salish Sea</h1>
-        <p class="lede">Seven hydrophones in Haro Strait and Puget Sound stream the sound of the sea around the clock: ship engines, sea lions, and sometimes the calls of the Southern Resident and Bigg's killer whales. Pick one and listen.</p>
+        <p class="lede">Orcasound's hydrophones in Haro Strait and Puget Sound stream the sound of the sea around the clock: ship engines, sea lions, and sometimes the calls of the Southern Resident and Bigg's killer whales. Pick one and listen. Hydrophones run by other groups around Vancouver Island and the Strait of Georgia are on the map below, with links to their own players.</p>
         </div>
         <div class="phones" id="phones"></div>
         <div class="spectro-wrap card" id="spectro-wrap" hidden>
@@ -48,17 +51,23 @@
     <section class="block">
       <div class="wrap">
         <div class="section-head"><div>
-          <div class="eyebrow">This week</div>
+          <div class="eyebrow">Vancouver Island to Puget Sound</div>
           <h2>Whales and ships</h2>
-          <p>Whale reports from the last few days (Acartia data cooperative) on top of a typical summer weekday of ship traffic (US Coast Guard AIS). Click a hydrophone to listen.</p>
+          <p>Whale sightings (Acartia data cooperative and iNaturalist) and Orcasound listener reports for the dates you pick, on top of ship tracks from the US Coast Guard's AIS archive. The map covers 47–51° N and 122–128.6° W: all of Vancouver Island, the Strait of Georgia, Juan de Fuca and Puget Sound. Click an Orcasound hydrophone to listen.</p>
         </div></div>
+        <div class="fresh card" id="fresh" aria-label="Data freshness"></div>
         <div class="map-shell card">
           <div class="map-body">
             <div id="map" class="map"></div>
             <aside class="panel">
+              <div class="side-title">Dates</div>
+              <div class="dates" id="dates"></div>
               <div class="side-title">Layers</div>
               <div class="layer-list" id="layers"></div>
+              <div class="side-title">Ship types</div>
+              <div class="ship-list" id="ship-list"></div>
               <div id="tiles-side"></div>
+              <div class="coverage note" id="coverage"></div>
             </aside>
           </div>
         </div>
@@ -68,11 +77,11 @@
     <section class="block">
       <div class="wrap">
         <div class="section-head"><div>
-          <div class="eyebrow">Recently confirmed</div>
-          <h2>Orca calls caught on the hydrophones</h2>
-          <p>Clips the OrcaHello AI flagged and a volunteer confirmed as killer whales. Press play to hear them.</p>
+          <div class="eyebrow">Last 30 days, rated</div>
+          <h2>Whale sound tier list</h2>
+          <p id="tiers-sub">OrcaHello AI clips and Orcasound listener reports, scored out of 100 for how sure, how special and how well-heard each one is. S is the best. Hover or focus a card for its score breakdown, and press play to hear it. The recipe is editorial, explained under Method.</p>
         </div></div>
-        <div class="calls" id="calls"></div>
+        <div class="tiers" id="tiers"></div>
       </div>
     </section>
 
@@ -132,12 +141,12 @@
         <div class="grid cols-2">
           <div class="card">
             <h3 class="card-title">Whale season, from iNaturalist</h3>
-            <p class="note card-sub" id="inat-sub">Research-grade observations by month in the Salish Sea.</p>
+            <p class="note card-sub" id="inat-sub">Research-grade observations by month around Vancouver Island and the Salish Sea.</p>
             <div class="grid cols-2" id="inat-season"></div>
           </div>
           <div class="card">
-            <h3 class="card-title">A summer weekday on the water</h3>
-            <p class="note card-sub">Vessels moving through the US side of the Salish Sea on July 17, 2024, by type.</p>
+            <h3 class="card-title" id="ships-title">Vessels on the water</h3>
+            <p class="note card-sub" id="ships-sub">Moving vessels by type on the ship days chosen on the map (US Coast Guard AIS).</p>
             <div class="chart" id="ships"></div>
           </div>
         </div>
@@ -159,23 +168,38 @@
             </ul>
             <p>A gradient-boosted classifier learns the human verdict on 2020–2024 flags and is scored on 2025–2026.</p>
             <p><b>Outlook.</b> Weekly logistic regression on season, last week's whale reports and the share of the last four weeks with reports, at each hydrophone. Reports come from the Orcasound live-listening app. It's validated on 2025–2026 by Brier score against a hydrophone-and-month climatology.</p>
-            <p><b>Ships.</b> One summer weekday of US Coast Guard AIS from the NOAA/BOEM Marine Cadastre, filtered to the Salish Sea. Moving vessels are thinned to two-minute fixes and grouped by AIS ship type.</p>
+            <p><b>Ships.</b> The latest 14 days of US Coast Guard AIS that NOAA/BOEM Marine Cadastre has published, clipped to 47–51° N, 122–128.6° W. Moving vessels (over 0.8 knots) are split into tracks at gaps over 30 minutes, thinned to one-minute fixes, simplified to about 40 m and grouped into seven AIS ship types. Each day is its own file, loaded only when you pick it. A live snapshot from aisstream.io is added when the free AISSTREAM_API_KEY secret is set.</p>
+            <p><b>Sightings.</b> Acartia's public feed only serves the last week, so every daily run is merged into an archive that grows from 6 October 2026. iNaturalist adds the last four months of cetacean photos (research grade and needs-ID). Listener reports are people pressing "whale" in the Orcasound app, counted per hydrophone and day.</p>
+            <p><b>Whale-sound tier list.</b> An editorial score out of 100, not a trained model. It covers the last 30 days of OrcaHello clips, grouped into encounters (same hydrophone, gaps under 30 minutes, best clip shown), and Orcasound listener events (reports at one hydrophone less than 20 minutes apart). Clips a moderator rejected are left out.</p>
+            <ul>
+              <li><b>Verification, 30.</b> Moderator confirmed 30, moderator unsure 12, listener reports 10, AI only 5.</li>
+              <li><b>AI confidence, 20.</b> OrcaHello's confidence. A listener event borrows it from an AI flag at the same hydrophone within ±10 minutes, else 0.</li>
+              <li><b>Species, 20.</b> Southern Resident 20 (moderator tags such as SRKW, J/K/L pod or S-call types), other orca 14, humpback 9, unknown 4. An AI label alone scores a little less (resident 15, Bigg's 11, humpback 7). A sighting within 25 km and an hour can fill in an unknown species.</li>
+              <li><b>Clarity, 15.</b> Number of positive AI segments (up to 6) and the strongest segment's score. For listener events, the number of reports (up to 6).</li>
+              <li><b>Corroboration, 10.</b> Listener reports or AI flags at the same hydrophone within ±1 hour, another hydrophone active within ±1 hour, or a sighting within 25 km and ±1 hour.</li>
+              <li><b>Recency, 5.</b> Halves roughly every five days.</li>
+            </ul>
+            <p>Tiers are fixed cut-offs: S 85+, A 70+, B 55+, C 40+, D below. The weights are a judgement about what makes a clip worth hearing. Change them and the order changes, so read the tiers as a guide, not a measurement.</p>
           </div>
           <div class="card prose">
             <h3>Honest limitations</h3>
             <ul>
               <li>Reports depend on hydrophones being online and people listening. Quiet weeks can mean no whales, a microphone that was down, or nobody tuned in. Only weeks when a hydrophone had some listener activity are modelled.</li>
               <li>Volunteers sometimes disagree, and the mix of hydrophones and AI model versions changed over time. The 2025–2026 test reflects today's system, which is the honest test.</li>
-              <li>The ship layer is a single US-collected day and is thinner on the Canadian side. Live ship positions need an aisstream.io key: the pipeline will add them automatically once one is supplied.</li>
-              <li>Whale reports are opportunistic. More reports near Seattle and the San Juans partly reflect where people are watching.</li>
+              <li><b>Ships in Canadian waters are under-counted.</b> NOAA's AIS comes from US Coast Guard shore receivers. They hear the southern Strait of Georgia and Juan de Fuca well, but reception fades north of Nanaimo, and Johnstone Strait and the west coast of Vancouver Island are essentially outside it. An empty stretch of water there means no data, not no ships. Canadian Coast Guard AIS isn't openly published, and the panel beside the map shows vessels per day by region.</li>
+              <li><b>Ship dates don't match whale dates.</b> NOAA publishes AIS in batches months after the fact (the latest is the end of June 2026). Ships for today need the aisstream.io key. Without it the page says so and shows no ships, never made-up ones.</li>
+              <li><b>Hydrophones outside Orcasound can't be played here.</b> Ocean Networks Canada needs a free account and token. SIMRES, Raincoast and OrcaLab stream on their own sites. Some positions are approximate.</li>
+              <li><b>Sighting history is short.</b> Acartia history on this page only goes back to 6 October 2026, because the public feed holds a week and the archive started then. Whale reports are opportunistic: more near Seattle, Victoria and the San Juans partly reflects where people are watching.</li>
+              <li><b>The outlook counts every whale report in the Orcasound app.</b> That includes AI detections OrcaHello posts there, not only people. The map and tier list use people's reports only.</li>
             </ul>
             <h3 style="margin-top:16px">Data sources</h3>
             <ul class="sources">
               <li><a href="https://www.orcasound.net/">Orcasound</a> hydrophone streams (CC BY-NC-SA 4.0) and live-listener reports</li>
               <li><a href="https://ai4orcas.net/">OrcaHello</a> AI detections and volunteer reviews (AI for Orcas / Orcasound)</li>
               <li><a href="https://acartia.io/">Acartia</a> marine mammal sightings data cooperative</li>
-              <li><a href="https://www.inaturalist.org/">iNaturalist</a> research-grade whale observations</li>
+              <li><a href="https://www.inaturalist.org/">iNaturalist</a> cetacean observations (© their observers)</li>
               <li><a href="https://hub.marinecadastre.gov/">NOAA / BOEM Marine Cadastre</a> AIS vessel traffic (public domain)</li>
+              <li>Hydrophone locations: <a href="https://simres.ca/">SIMRES</a>, <a href="https://www.raincoast.org/">Raincoast</a>, <a href="https://orcalab.org/">OrcaLab</a>, <a href="https://www.jasco.com/projects/boundary-pass-uls">JASCO / ECHO</a>, <a href="https://www.oceannetworks.ca/">Ocean Networks Canada</a></li>
               <li>Basemap © <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></li>
             </ul>
             <p class="note" id="generated"></p>

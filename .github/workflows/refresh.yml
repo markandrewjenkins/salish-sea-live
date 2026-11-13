@@ -30,16 +30,17 @@ jobs:
           path: data
           key: raw-${{ github.run_id }}
           restore-keys: raw-
-      - name: "Salish Sea Live: listener reports and whale sightings"
+      - name: "Salish Sea Live: listener reports, whale sightings, OrcaHello clips, AIS days"
         if: github.event_name != 'push'      # pushes publish the committed data straight away
         continue-on-error: true               # a flaky source keeps its last good data instead of blocking the site
         timeout-minutes: 90
         env:
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+        # `fetch` isolates each source: a failure is logged (as a ::warning annotation) and the build still runs,
+        # so one bad upstream record can't freeze the page. `ais` only downloads when NOAA publishes new days.
         run: |
-          python -m pipelines.salish.fetch orcasound
-          python -m pipelines.salish.fetch acartia
-          python -m pipelines.salish.fetch live
+          python -m pipelines.salish.fetch daily
+          python -m pipelines.salish.fetch ais
           python -m pipelines.salish.build
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: npm, cache-dependency-path: site/package-lock.json }

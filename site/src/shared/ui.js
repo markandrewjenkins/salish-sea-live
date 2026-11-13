@@ -35,8 +35,12 @@ const SKIN_KEY = "odp-skin";
 
 // Design skins: every page has its classic look and one themed alternative (data-skin="alt" on <html>).
 // The choice is shared across pages so you can browse every alternative in one go.
+// A page under review can offer several: <html data-skins="alt herbarium group7"> plus
+// <button data-skin-names="Kodachrome|Herbarium|Group of Seven"> (same order) turns the button into a picker menu.
+// Skin modules check root.dataset.skin === "<id>" and listen for "skinchange", exactly as for "alt".
 export function initSkin(button) {
   const root = document.documentElement;
+  if (root.dataset.skins && button?.dataset.skinNames) return initSkinMenu(button);
   const name = button?.dataset.skinName || "Alternative";
   const on = () => root.dataset.skin === "alt";
   const paint = () => {
@@ -54,6 +58,56 @@ export function initSkin(button) {
   });
   paint();
   return on;
+}
+
+function initSkinMenu(button) {
+  const root = document.documentElement;
+  const ids = ["classic", ...root.dataset.skins.split(" ")];
+  const names = ["Classic", ...button.dataset.skinNames.split("|")];
+  const pk = "odp-skin:" + (root.dataset.page || location.pathname);
+  const cur = () => (ids.includes(root.dataset.skin) ? root.dataset.skin : "classic");
+  const menu = el("div", { class: "skin-menu", role: "menu", hidden: "" });
+  const items = ids.map((id, i) => {
+    const b = el("button", { type: "button", role: "menuitemradio", "data-id": id },
+      el("span", { class: "skin-dot", "aria-hidden": "true" }), el("span", {}, names[i]));
+    b.addEventListener("click", () => { set(id); close(); button.focus(); });
+    return b;
+  });
+  menu.append(el("div", { class: "skin-menu-head" }, "Design"), ...items);
+  button.after(menu);
+  button.setAttribute("aria-haspopup", "menu");
+  const paint = () => {
+    const i = ids.indexOf(cur());
+    button.replaceChildren(el("span", { class: "skin-dot", "aria-hidden": "true" }), el("span", {}, names[i]), el("span", { class: "skin-caret", "aria-hidden": "true" }, "▾"));
+    button.title = `Design: ${names[i]} (${ids.length} to compare)`;
+    button.setAttribute("aria-pressed", String(i > 0));
+    items.forEach((b) => b.setAttribute("aria-checked", String(b.dataset.id === cur())));
+  };
+  const set = (id) => {
+    if (id === "classic") delete root.dataset.skin; else root.dataset.skin = id;
+    try { localStorage.setItem(pk, id); if (id === "alt" || id === "classic") localStorage.setItem(SKIN_KEY, id); } catch { /* ignore */ }
+    paint();
+    window.dispatchEvent(new CustomEvent("skinchange"));
+    window.dispatchEvent(new CustomEvent("themechange"));
+  };
+  const place = () => {
+    const r = button.getBoundingClientRect();
+    menu.style.top = `${r.bottom + 6}px`;
+    menu.style.right = `${Math.max(8, innerWidth - r.right)}px`;
+  };
+  const close = () => { menu.hidden = true; button.setAttribute("aria-expanded", "false"); };
+  const open = () => { place(); menu.hidden = false; button.setAttribute("aria-expanded", "true"); items[ids.indexOf(cur())].focus(); };
+  button.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden ? open() : close(); });
+  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) close(); });
+  menu.addEventListener("keydown", (e) => {
+    const i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { close(); button.focus(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  });
+  addEventListener("resize", () => { if (!menu.hidden) place(); });
+  paint();
+  return () => cur() !== "classic";
 }
 
 export const cssVar = (name, el = document.body) => getComputedStyle(el).getPropertyValue(name).trim();
